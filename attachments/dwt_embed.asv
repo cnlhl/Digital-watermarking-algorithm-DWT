@@ -1,0 +1,58 @@
+clc
+clear all
+close all
+
+% read the carrier image and secret image
+
+image = imread('lena.jpg');       % read carrier image
+water = imread('secret_fudan.bmp');    % reand the secret
+[M, N, C] = size(image);
+t = 350;  % 量化步长，可以调整来改变水印的透明性和鲁棒性
+
+if ~(M == 512 && N == 512 && C == 3)
+    error('input size required: 512x512x3');
+end
+
+% embed the watermark
+
+[imagemark] = embed_water(image,water,t);
+subplot(1,2,1);
+imshow(image);
+title('original image');
+subplot(1,2,2);
+imshow(imagemark);
+title('watermark image');
+
+function [imagemark] = embed_water(carrier_image, secret_image, t)
+    YCbCr = rgb2ycbcr(carrier_image);
+    Cb = double(YCbCr(:,:,2));
+    [cA, cB, cC, cD] = dwt2(Cb, 'haar');
+    [M, N, ~] = size(cA);
+    [wM, wN] = size(secret_image);
+
+    x = uint8(4 * ones(1, M / 4));
+    y = uint8(4 * ones(1, N / 4));
+    cA_ = mat2cell(cA, x, y);
+
+    for i = 1:M/4
+        for j = 1:N/4
+            if()
+            [U, T] = schur(cA_{i, j});
+            [m, n] = find(T == max(max(T)));
+            Tmax = T(m, n);
+            if secret_image(i, j) == 1
+                Tmax = Tmax - mod(Tmax, t) + 0.75 * t;
+            else
+                Tmax = Tmax - mod(Tmax, t) + 0.25 * t;
+            end
+            T(m, n) = Tmax;
+            cA_{i, j} = U * T * U';
+        end
+    end
+
+    cA = cell2mat(cA_);
+    Cbmark = uint8(idwt2(cA, cB, cC, cD, 'haar'));
+    YCbCr(:,:,2) = Cbmark;
+    imagemark = ycbcr2rgb(YCbCr);
+end
+

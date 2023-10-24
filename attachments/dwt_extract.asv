@@ -1,0 +1,44 @@
+clc
+clear all
+close all
+
+% read the carrier image
+
+carrier_embedded = imread('carrier_embedded.jpg');
+t = 350;
+
+[secret_extract] = extract_water( carrier_embedded,t);
+figure;
+subplot(1,2,1);
+imshow(carrier_embedded);   
+title('carrier_embedded');
+subplot(1,2,2);
+imshow(secret_extract);      
+title('extract watermark');
+
+function [ water_extract ] = extract_water( imagemark,t )
+    YCbCrmark = rgb2ycbcr(imagemark);
+    Cbmark = double(YCbCrmark(:,:,2));
+    
+    [cAw,cBw,cCw,cDw] = dwt2(Cbmark,'haar');    %小波分解
+    [M,N,C]= size(cAw);      %计算高频对角分量的规模
+    
+    x = uint8(4*ones(1,M/4));   
+    y = uint8(4*ones(1,N/4));
+    cAw_ = mat2cell(cAw,x,y);   %高频对角分量进行分块
+    water_extract = ones(64,64);
+    
+    for i=1:1:M/4
+        for j=1:1:N/4
+            [U,T]=schur(cAw_{i,j});
+            [m,n] = find(T == max(max(T)));
+            Tmax_ = T(m,n);
+            if mod(Tmax_,t)<(t/2)
+                water_extract(i,j) = 0;
+            else
+                water_extract(i,j) = 1;
+            end
+        end
+    end
+
+end
